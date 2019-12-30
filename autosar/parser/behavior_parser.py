@@ -779,7 +779,7 @@ class BehaviorParser(ElementParser):
                     if xmlChild.tag == 'CONSTANT-REFERENCE':
                         initValueRef = self.parseTextNode(xmlChild.find('./CONSTANT-REF'))
                     else:
-                        values = self.constantParser.parseValueV4(xmlElem, None)
+                        values = self.parseValueV4(xmlElem, None)
                         if len(values) != 1:
                             raise ValueError('{0} cannot cannot contain multiple elements'.format(xmlElem.tag))
                         initValue = values[0]

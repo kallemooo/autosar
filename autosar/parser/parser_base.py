@@ -1,6 +1,6 @@
 import abc
 from collections import deque
-from autosar.base import (AdminData, SpecialDataGroup, SpecialData, SwDataDefPropsConditional, SwPointerTargetProps, SymbolProps)
+from autosar.base import (AdminData, SpecialDataGroup, SpecialData, SwDataDefPropsConditional, SwPointerTargetProps, SymbolProps, SwCalprmAxis)
 import autosar.element
 
 def _parseBoolean(value):
@@ -197,7 +197,8 @@ class BaseParser:
     def parseSwDataDefPropsConditional(self, xmlRoot):
         assert (xmlRoot.tag == 'SW-DATA-DEF-PROPS-CONDITIONAL')
         (baseTypeRef, implementationTypeRef, swCalibrationAccess, compuMethodRef, dataConstraintRef,
-         swPointerTargetPropsXML, swImplPolicy, swAddressMethodRef, unitRef) = (None, None, None, None, None, None, None, None, None)
+            swPointerTargetPropsXML, swImplPolicy, swAddressMethodRef, unitRef, axisSetXML, swRecordLayoutRef,
+            additionalNativeTypeQualifier, invalidValueXML) = (None, None, None, None, None, None, None, None, None, None, None, None, None)
         for xmlItem in xmlRoot.findall('./*'):
             if xmlItem.tag == 'BASE-TYPE-REF':
                 baseTypeRef = self.parseTextNode(xmlItem)
@@ -218,23 +219,67 @@ class BaseParser:
             elif xmlItem.tag == 'UNIT-REF':
                 unitRef = self.parseTextNode(xmlItem)
             elif xmlItem.tag == 'ADDITIONAL-NATIVE-TYPE-QUALIFIER':
-                pass #implement later
+                additionalNativeTypeQualifier = self.parseTextNode(xmlItem)
             elif xmlItem.tag == 'SW-CALPRM-AXIS-SET':
-                print("[BaseParser] unhandled: %s"%xmlItem.tag)
-                pass #implement later
-                print("[BaseParser] unhandled: %s"%xmlItem.tag)
+                axisSetXML = xmlItem
             elif xmlItem.tag == 'SW-RECORD-LAYOUT-REF':
-                print("[BaseParser] unhandled: %s"%xmlItem.tag)
-                pass #implement later
+                swRecordLayoutRef = self.parseTextNode(xmlItem)
             elif xmlItem.tag == 'INVALID-VALUE':
-                print("[BaseParser] unhandled: %s"%xmlItem.tag)
-                pass #implement later
+                invalidValueXML = xmlItem
             else:
                 raise NotImplementedError(xmlItem.tag)
-        variant = SwDataDefPropsConditional(baseTypeRef, implementationTypeRef, swAddressMethodRef, swCalibrationAccess, swImplPolicy, None, compuMethodRef, dataConstraintRef, unitRef)
+        variant = SwDataDefPropsConditional(baseTypeRef, implementationTypeRef, swAddressMethodRef, swCalibrationAccess,
+                    swImplPolicy, None, compuMethodRef, dataConstraintRef, unitRef, swRecordLayoutRef, additionalNativeTypeQualifier)
         if swPointerTargetPropsXML is not None:
             variant.swPointerTargetProps = self.parseSwPointerTargetProps(swPointerTargetPropsXML, variant)
+
+        if axisSetXML is not None:
+            axisSet = []
+            for xmlChild in axisSetXML.findall('./*'):
+                if xmlChild.tag == 'SW-CALPRM-AXIS':
+                    axisSet.append(self.parseSwCalprmAxis(xmlChild, variant))
+            variant.axisSet = axisSet
+
+        if invalidValueXML is not None:
+            values = self.parseValueV4(invalidValueXML, variant)
+            if len(values) != 1:
+                raise ValueError('A value specification must contain exactly one element')
+            variant.invalidValue = values[0]
+
         return variant
+
+    def parseSwCalprmAxis(self, rootXML, parent = None):
+        assert (rootXML.tag == 'SW-CALPRM-AXIS')
+        (swAxisIndex, calibrationAccess, category, displayFormat, baseTypeRef, swAxisGroupedSharedAxisRef,
+            swAxisGroupedIndex) = (None, None, None, None, None, None, None)
+        for itemXML in rootXML.findall('./*'):
+            if itemXML.tag == 'SW-AXIS-INDEX':
+                swAxisIndex = self.parseNumberNode(itemXML)
+            elif itemXML.tag == 'CATEGORY':
+                category = self.parseTextNode(itemXML)
+            elif itemXML.tag == 'SW-AXIS-GROUPED':
+                for childXML in itemXML.findall('./*'):
+                    if childXML.tag == 'SHARED-AXIS-TYPE-REF':
+                        swAxisGroupedSharedAxisRef = self.parseTextNode(childXML)
+                    elif childXML.tag == 'SW-AXIS-INDEX':
+                        swAxisGroupedIndex = self.parseNumberNode(childXML)
+                    else:
+                        raise NotImplementedError(childXML.tag)
+            elif itemXML.tag == 'SW-AXIS-INDIVIDUAL':
+                print("[BaseParser] unhandled: %s"%itemXML.tag)
+                pass #implement later
+            elif itemXML.tag == 'SW-CALIBRATION-ACCESS':
+                calibrationAccess = self.parseTextNode(itemXML)
+            elif itemXML.tag == 'DISPLAY-FORMAT':
+                calibrationAccess = self.parseTextNode(itemXML)
+            elif itemXML.tag == 'BASE-TYPE-REF':
+                baseTypeRef = self.parseTextNode(itemXML)
+            else:
+                raise NotImplementedError(itemXML.tag)
+        axis = SwCalprmAxis(swAxisIndex = swAxisIndex, calibrationAccess = calibrationAccess,
+                category = category, displayFormat = displayFormat, baseTypeRef = baseTypeRef,
+                swAxisGroupedSharedAxisRef = swAxisGroupedSharedAxisRef, swAxisGroupedIndex = swAxisGroupedIndex)
+        return axis
 
     def parseSwPointerTargetProps(self, rootXML, parent = None):
         assert (rootXML.tag == 'SW-POINTER-TARGET-PROPS')
@@ -279,7 +324,165 @@ class BaseParser:
             else:
                 raise NotImplementedError(xmlElem.tag)
         return SymbolProps(name, symbol)
-            
+
+    def parseValueV4(self, xmlValue, parent):
+        result = []
+        for xmlElem in xmlValue.findall('./*'):
+            if xmlElem.tag == 'TEXT-VALUE-SPECIFICATION':
+                result.append(self._parseTextValueSpecification(xmlElem, parent))
+            elif xmlElem.tag == 'RECORD-VALUE-SPECIFICATION':
+                result.append(self._parseRecordValueSpecification(xmlElem, parent))
+            elif xmlElem.tag == 'NUMERICAL-VALUE-SPECIFICATION':
+                result.append(self._parseNumericalValueSpecification(xmlElem, parent))
+            elif xmlElem.tag == 'ARRAY-VALUE-SPECIFICATION':
+                result.append(self._parseArrayValueSpecification(xmlElem, parent))
+            elif xmlElem.tag == 'CONSTANT-REFERENCE':
+                result.append(self._parseConstantReference(xmlElem, parent))
+            elif xmlElem.tag == 'APPLICATION-VALUE-SPECIFICATION':
+                result.append(self._parseApplicationValueSpecification(xmlElem, parent))
+            else:
+                raise NotImplementedError(xmlElem.tag)
+        return result
+
+    def _parseTextValueSpecification(self, xmlValue, parent):
+        (label, value) = (None, None)
+        for xmlElem in xmlValue.findall('./*'):
+            if xmlElem.tag == 'SHORT-LABEL':
+                label = self.parseTextNode(xmlElem)
+            elif xmlElem.tag == 'VALUE':
+                value = self.parseTextNode(xmlElem)
+            else:
+                raise NotImplementedError(xmlElem.tag)
+
+        if value is not None:
+            return autosar.constant.TextValue(label, value, parent)
+        else:
+            raise RuntimeError("Value must not be None")
+
+    def _parseNumericalValueSpecification(self, xmlValue, parent):
+        (label, value) = (None, None)
+        for xmlElem in xmlValue.findall('./*'):
+            if xmlElem.tag == 'SHORT-LABEL':
+                label = self.parseTextNode(xmlElem)
+            elif xmlElem.tag == 'VALUE':
+                value = self.parseTextNode(xmlElem)
+            else:
+                raise NotImplementedError(xmlElem.tag)
+
+        if value is not None:
+            return autosar.constant.NumericalValue(label, value, parent)
+        else:
+            raise RuntimeError("value must not be None")
+
+    def _parseRecordValueSpecification(self, xmlValue, parent):
+        (label, xmlFields) = (None, None)
+        for xmlElem in xmlValue.findall('./*'):
+            if xmlElem.tag == 'SHORT-LABEL':
+                label = self.parseTextNode(xmlElem)
+            elif xmlElem.tag == 'FIELDS':
+                xmlFields = xmlElem
+            else:
+                raise NotImplementedError(xmlElem.tag)
+
+        if (xmlFields is not None):
+            record = autosar.constant.RecordValue(label, parent=parent)
+            record.elements = self.parseValueV4(xmlFields, record)
+            return record
+        else:
+            raise RuntimeError("<FIELDS> must not be None")
+
+    def _parseArrayValueSpecification(self, xmlValue, parent):
+        (label, xmlElements) = (None, None)
+        for xmlElem in xmlValue.findall('./*'):
+            if xmlElem.tag == 'SHORT-LABEL':
+                label = self.parseTextNode(xmlElem)
+            elif xmlElem.tag == 'ELEMENTS':
+                xmlElements = xmlElem
+            else:
+                raise NotImplementedError(xmlElem.tag)
+
+        if (xmlElements is not None):
+            array = autosar.constant.ArrayValueAR4(label, parent=parent)
+            array.elements = self.parseValueV4(xmlElements, array)
+            return array
+
+        else:
+            raise RuntimeError("<ELEMENTS> must not be None")
+
+    def _parseConstantReference(self, xmlRoot, parent):
+        label, constantRef = None, None
+        self.push()
+        for xmlElem in xmlRoot.findall('./*'):
+            if xmlElem.tag == 'SHORT-LABEL':
+                label = self.parseTextNode(xmlElem)
+            elif xmlElem.tag == 'CONSTANT-REF':
+                constantRef = self.parseTextNode(xmlElem)
+            else:
+                self.baseHandler(xmlElem)
+        if constantRef is not None:
+            obj = autosar.constant.ConstantReference(label, constantRef, parent, self.adminData)
+            self.pop(obj)
+            return obj
+        else:
+            raise RuntimeError('<CONSTANT-REF> must not be None')
+
+    def _parseApplicationValueSpecification(self, xmlRoot, parent):
+        label, swValueCont, swAxisCont, category = None, None, None, None
+
+        for xmlElem in xmlRoot.findall('./*'):
+            if xmlElem.tag == 'SHORT-LABEL':
+                label = self.parseTextNode(xmlElem)
+            elif xmlElem.tag == 'CATEGORY':
+                category = self.parseTextNode(xmlElem)
+            elif xmlElem.tag == 'SW-VALUE-CONT':
+                swValueCont = self._parseSwValueCont(xmlElem)
+            elif xmlElem.tag == 'SW-AXIS-CONTS':
+                xmlChild = xmlElem.find('./SW-AXIS-CONT')
+                if xmlChild is not None:
+                    swAxisCont = self._parseSwAxisCont(xmlChild)
+            else:
+                raise NotImplementedError(xmlElem.tag)
+        value = autosar.constant.ApplicationValue(label, swValueCont = swValueCont, swAxisCont = swAxisCont, category = category, parent = parent)
+        return value
+
+    def _parseSwValueCont(self, xmlRoot):
+        unitRef = None
+        valueList = []
+        for xmlElem in xmlRoot.findall('./*'):
+            if xmlElem.tag == 'UNIT-REF':
+                unitRef = self.parseTextNode(xmlElem)
+            elif xmlElem.tag == 'SW-VALUES-PHYS':
+                for xmlChild in xmlElem.findall('./*'):
+                    if (xmlChild.tag == 'V') or (xmlChild.tag == 'VF'):
+                        valueList.append(self.parseNumberNode(xmlChild))
+                    elif xmlChild.tag == 'VT':
+                        valueList.append(self.parseTextNode(xmlChild))
+                    else:
+                        raise NotImplementedError(xmlChild.tag)
+            else:
+                raise NotImplementedError(xmlElem.tag)
+        if len(valueList)==0:
+            valueList = None
+        return autosar.constant.SwValueCont(valueList, unitRef)
+
+    def _parseSwAxisCont(self, xmlRoot):
+        unitRef = None
+        valueList = []
+        for xmlElem in xmlRoot.findall('./*'):
+            if xmlElem.tag == 'UNIT-REF':
+                unitRef = self.parseTextNode(xmlElem)
+            elif xmlElem.tag == 'SW-VALUES-PHYS':
+                for xmlChild in xmlElem.findall('./*'):
+                    if xmlChild.tag == 'V':
+                        valueList.append(self.parseNumberNode(xmlChild))
+                    else:
+                        raise NotImplementedError(xmlChild.tag)
+            else:
+                raise NotImplementedError(xmlElem.tag)
+        if len(valueList)==0:
+            valueList = None
+        return autosar.constant.SwAxisCont(valueList, unitRef)
+
 class ElementParser(BaseParser, metaclass=abc.ABCMeta):
 
     def __init__(self, version=None):

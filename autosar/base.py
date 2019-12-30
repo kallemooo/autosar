@@ -246,7 +246,9 @@ def findUniqueNameInList(elementList, baseName):
 
 class SwDataDefPropsConditional:
     def tag(self,version=None): return 'SW-DATA-DEF-PROPS-CONDITIONAL'
-    def __init__(self, baseTypeRef = None, implementationTypeRef = None, swAddressMethodRef = None, swCalibrationAccess = None, swImplPolicy = None, swPointerTargetProps = None, compuMethodRef = None, dataConstraintRef = None, unitRef = None, parent = None):
+    def __init__(self, baseTypeRef = None, implementationTypeRef = None, swAddressMethodRef = None, swCalibrationAccess = None,
+            swImplPolicy = None, swPointerTargetProps = None, compuMethodRef = None, dataConstraintRef = None,
+            unitRef = None, parent = None, swRecordLayoutRef = None, additionalNativeTypeQualifier = None, axisSet = None, invalidValue = None):
         self.baseTypeRef = baseTypeRef
         self.swCalibrationAccess = swCalibrationAccess
         self.swAddressMethodRef = swAddressMethodRef
@@ -255,7 +257,11 @@ class SwDataDefPropsConditional:
         self.implementationTypeRef = implementationTypeRef
         self.swPointerTargetProps = swPointerTargetProps
         self.unitRef = unitRef
-        self.swImplPolicy = swImplPolicy
+        self._swImplPolicy = swImplPolicy
+        self.axisSet = axisSet
+        self.swRecordLayoutRef = swRecordLayoutRef
+        self.additionalNativeTypeQualifier = additionalNativeTypeQualifier
+        self.invalidValue = invalidValue
         self.parent = parent
 
     @property
@@ -288,7 +294,11 @@ class SwDataDefPropsConditional:
                       'implementationTypeRef',
                       'swPointerTargetProps',
                       'unitRef',
-                      'swImplPolicy'
+                      '_swImplPolicy',
+                      'axisSet',
+                      'swRecordLayoutRef',
+                      'additionalNativeTypeQualifier',
+                      'invalidValue'
                       ]
         for name in attr_names:
             if getattr(self, name) is not None:
@@ -323,6 +333,36 @@ class SymbolProps:
         self.name = name
         self.symbol = symbol
 
+class SwCalprmAxis:
+    """
+    (AUTOSAR 4)
+    Implements <SW-CALPRM-AXIS>
+    """
+    def tag(self, version=None): return 'SW-CALPRM-AXIS'
+
+    def __init__(self, swAxisIndex = None, category = None, calibrationAccess = None, swAxisIndividual = None, swAxisGroupedSharedAxisRef = None, swAxisGroupedIndex = None, displayFormat = None, baseTypeRef = None):
+        self.swAxisIndex = swAxisIndex
+        self.category = category
+        self.calibrationAccess = calibrationAccess
+        self.swAxisIndividual = swAxisIndividual
+        self.swAxisGroupedSharedAxisRef = swAxisGroupedSharedAxisRef
+        self.swAxisGroupedIndex = swAxisGroupedIndex
+        self.displayFormat = displayFormat
+        self.baseTypeRef = baseTypeRef
+
+class SwCalprmAxisIndividual:
+    """
+    (AUTOSAR 4)
+    Implements <SW-AXIS-INDIVIDUAL>
+    """
+    def tag(self, version=None): return 'SW-AXIS-INDIVIDUAL'
+
+    def __init__(self, compuMethodRef = None, unitRef = None, swMaxAxisPoints = None, swMixAxisPoints = None, dataConstraintRef = None):
+        self.compuMethodRef = compuMethodRef
+        self.unitRef = unitRef
+        self.swMaxAxisPoints = swMaxAxisPoints
+        self.swMixAxisPoints = swMixAxisPoints
+        self.dataConstraintRef = dataConstraintRef
 
 #Exceptions
 class InvalidUnitRef(ValueError):

@@ -324,19 +324,6 @@ class XMLDataTypeWriter(ElementWriter):
         lines.append("</%s>"%elem.tag(self.version))
         return lines
 
-    def writeSwPointerTargetPropsXML(self, ws, elem):
-        assert(isinstance(elem, autosar.base.SwPointerTargetProps))
-        lines = []
-        lines.append("<%s>"%elem.tag(self.version))
-        if elem.targetCategory is not None:
-            lines.append(self.indent('<TARGET-CATEGORY>%s</TARGET-CATEGORY>'%(elem.targetCategory),1))
-        lines.append(self.indent("<SW-DATA-DEF-PROPS>", 1))
-        if len(elem.variants)>=0:
-            lines.extend(self.indent(self.writeSwDataDefPropsVariantsXML(ws, elem.variants),2))
-        lines.append(self.indent("</SW-DATA-DEF-PROPS>", 1))
-        lines.append("</%s>"%elem.tag(self.version))
-        return lines
-
     def writeSwBaseTypeXML(self, elem):
         assert(isinstance(elem, autosar.datatype.SwBaseType))
         lines = []

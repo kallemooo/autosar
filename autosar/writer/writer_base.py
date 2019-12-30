@@ -211,6 +211,17 @@ class BaseWriter:
             if unit is None:
                 raise ValueError('invalid reference: '+elem.unitRef)
             lines.append(self.indent('<UNIT-REF DEST="UNIT">%s</UNIT-REF>'%(unit.ref),1))
+        if elem.swRecordLayoutRef is not None:
+            swRecordLayout=ws.find(elem.swRecordLayoutRef)
+            if swRecordLayout is None:
+                raise ValueError('invalid reference: '+elem.swRecordLayoutRef)
+            lines.append(self.indent('<SW-RECORD-LAYOUT-REF DEST="%s">%s</SW-RECORD-LAYOUT-REF>'%(swRecordLayout.tag(self.version), swRecordLayout.ref),1))
+        if elem.additionalNativeTypeQualifier is not None:
+            lines.append(self.indent('<ADDITIONAL-NATIVE-TYPE-QUALIFIER>%s</ADDITIONAL-NATIVE-TYPE-QUALIFIER>'%(elem.additionalNativeTypeQualifier),1))
+        if elem.invalidValue is not None:
+            lines.append(self.indent('<INVALID-VALUE>',1))
+            lines.extend(self.indent(self.writeValueSpecificationXML(elem.invalidValue),2))
+            lines.append(self.indent('</INVALID-VALUE>',1))
         lines.append("</%s>"%elem.tag(self.version))
         return lines
 
@@ -402,6 +413,19 @@ class BaseWriter:
         """
         d = Decimal(str(f));
         return d.quantize(Decimal(1)) if d == d.to_integral() else d.normalize()
+
+    def writeSwPointerTargetPropsXML(self, ws, elem):
+        assert(isinstance(elem, autosar.base.SwPointerTargetProps))
+        lines = []
+        lines.append("<%s>"%elem.tag(self.version))
+        if elem.targetCategory is not None:
+            lines.append(self.indent('<TARGET-CATEGORY>%s</TARGET-CATEGORY>'%(elem.targetCategory),1))
+        lines.append(self.indent("<SW-DATA-DEF-PROPS>", 1))
+        if len(elem.variants)>=0:
+            lines.extend(self.indent(self.writeSwDataDefPropsVariantsXML(ws, elem.variants),2))
+        lines.append(self.indent("</SW-DATA-DEF-PROPS>", 1))
+        lines.append("</%s>"%elem.tag(self.version))
+        return lines
 
 
 class ElementWriter(BaseWriter, metaclass=abc.ABCMeta):
