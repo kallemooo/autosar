@@ -1241,6 +1241,28 @@ class Package(object):
         compuMethodPackage.append(compuMethod)
         return compuMethod
 
+    def createCompuMethodIdentical(self, name, unit = None, adminData = None):
+        ws = self.rootWS()
+        assert(ws is not None)
+
+        category = 'IDENTICAL'
+
+        if ws.roles['CompuMethod'] is None:
+            compuMethodPackage = self
+        else:
+            compuMethodPackage = ws.find(ws.roles['CompuMethod'])
+
+        unitRef = None
+        unitObj = self._checkAndCreateUnit(ws, unit)
+        if unitObj is not None:
+            unitRef = unitObj.ref
+        if isinstance(adminData, dict):
+            adminData = autosar.base.createAdminData(adminData)
+
+        compuMethod = autosar.datatype.CompuMethod(name, useIntToPhys=None, usePhysToInt=None, unitRef=unitRef, category=category, parent=compuMethodPackage, adminData=adminData)
+
+        compuMethodPackage.append(compuMethod)
+        return compuMethod
 
 
     def _calcNumeratorDenominator(self, scalingFactor, forceFloat = False):

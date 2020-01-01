@@ -197,7 +197,7 @@ class BaseParser:
     def parseSwDataDefPropsConditional(self, xmlRoot):
         assert (xmlRoot.tag == 'SW-DATA-DEF-PROPS-CONDITIONAL')
         (baseTypeRef, implementationTypeRef, swCalibrationAccess, compuMethodRef, dataConstraintRef,
-            swPointerTargetPropsXML, swImplPolicy, swAddressMethodRef, unitRef, axisSetXML, swRecordLayoutRef,
+            swPointerTargetPropsXML, swImplPolicy, swAddressMethodRef, unitRef, calPrmAxisSetXML, swRecordLayoutRef,
             additionalNativeTypeQualifier, invalidValueXML) = (None, None, None, None, None, None, None, None, None, None, None, None, None)
         for xmlItem in xmlRoot.findall('./*'):
             if xmlItem.tag == 'BASE-TYPE-REF':
@@ -221,7 +221,7 @@ class BaseParser:
             elif xmlItem.tag == 'ADDITIONAL-NATIVE-TYPE-QUALIFIER':
                 additionalNativeTypeQualifier = self.parseTextNode(xmlItem)
             elif xmlItem.tag == 'SW-CALPRM-AXIS-SET':
-                axisSetXML = xmlItem
+                calPrmAxisSetXML = xmlItem
             elif xmlItem.tag == 'SW-RECORD-LAYOUT-REF':
                 swRecordLayoutRef = self.parseTextNode(xmlItem)
             elif xmlItem.tag == 'INVALID-VALUE':
@@ -233,12 +233,12 @@ class BaseParser:
         if swPointerTargetPropsXML is not None:
             variant.swPointerTargetProps = self.parseSwPointerTargetProps(swPointerTargetPropsXML, variant)
 
-        if axisSetXML is not None:
-            axisSet = []
-            for xmlChild in axisSetXML.findall('./*'):
+        if calPrmAxisSetXML is not None:
+            calPrmAxisSet = []
+            for xmlChild in calPrmAxisSetXML.findall('./*'):
                 if xmlChild.tag == 'SW-CALPRM-AXIS':
-                    axisSet.append(self.parseSwCalprmAxis(xmlChild, variant))
-            variant.axisSet = axisSet
+                    calPrmAxisSet.append(self.parseSwCalprmAxis(xmlChild, variant))
+            variant.calPrmAxisSet = calPrmAxisSet
 
         if invalidValueXML is not None:
             values = self.parseValueV4(invalidValueXML, variant)
@@ -251,7 +251,7 @@ class BaseParser:
     def parseSwCalprmAxis(self, rootXML, parent = None):
         assert (rootXML.tag == 'SW-CALPRM-AXIS')
         (swAxisIndex, calibrationAccess, category, displayFormat, baseTypeRef, swAxisGroupedSharedAxisRef,
-            swAxisGroupedIndex) = (None, None, None, None, None, None, None)
+            swAxisGroupedIndex, swAxisIndividualXML) = (None, None, None, None, None, None, None, None)
         for itemXML in rootXML.findall('./*'):
             if itemXML.tag == 'SW-AXIS-INDEX':
                 swAxisIndex = self.parseNumberNode(itemXML)
@@ -266,8 +266,7 @@ class BaseParser:
                     else:
                         raise NotImplementedError(childXML.tag)
             elif itemXML.tag == 'SW-AXIS-INDIVIDUAL':
-                print("[BaseParser] unhandled: %s"%itemXML.tag)
-                pass #implement later
+                swAxisIndividualXML = itemXML
             elif itemXML.tag == 'SW-CALIBRATION-ACCESS':
                 calibrationAccess = self.parseTextNode(itemXML)
             elif itemXML.tag == 'DISPLAY-FORMAT':
@@ -278,7 +277,25 @@ class BaseParser:
                 raise NotImplementedError(itemXML.tag)
         axis = SwCalprmAxis(swAxisIndex = swAxisIndex, calibrationAccess = calibrationAccess,
                 category = category, displayFormat = displayFormat, baseTypeRef = baseTypeRef,
-                swAxisGroupedSharedAxisRef = swAxisGroupedSharedAxisRef, swAxisGroupedIndex = swAxisGroupedIndex)
+                swAxisGroupedSharedAxisRef = swAxisGroupedSharedAxisRef, swAxisGroupedIndex = swAxisGroupedIndex, parent = parent)
+
+        if swAxisIndividualXML is not None:
+            swAxisIndividual = autosar.base.SwCalprmAxisIndividual(parent=axis)
+            axis.swAxisIndividual = swAxisIndividual
+            for childXML in swAxisIndividualXML.findall('./*'):
+                if childXML.tag == 'COMPU-METHOD-REF':
+                    swAxisIndividual.compuMethodRef = self.parseTextNode(childXML)
+                elif childXML.tag == 'UNIT-REF':
+                    swAxisIndividual.unitRef = self.parseTextNode(childXML)
+                elif childXML.tag == 'SW-MAX-AXIS-POINTS':
+                    swAxisIndividual.swMaxAxisPoints = self.parseNumberNode(childXML)
+                elif childXML.tag == 'SW-MIN-AXIS-POINTS':
+                    swAxisIndividual.swMinAxisPoints = self.parseNumberNode(childXML)
+                elif childXML.tag == 'DATA-CONSTR-REF':
+                    swAxisIndividual.dataConstraintRef = self.parseTextNode(childXML)
+                else:
+                    raise NotImplementedError(childXML.tag)
+
         return axis
 
     def parseSwPointerTargetProps(self, rootXML, parent = None):

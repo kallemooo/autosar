@@ -360,7 +360,7 @@ class ARXML4DataTypeTest(ARXMLTestClass):
         file_name = 'ar4_implementation_type_ref2.arxml'
         generated_file = os.path.join(self.output_dir, file_name)
         expected_file = os.path.join( 'expected_gen', 'datatype', file_name)
-        self.save_and_check(ws, expected_file, generated_file, ['/DataTypes'], force = True)
+        self.save_and_check(ws, expected_file, generated_file, ['/DataTypes'])
 
         ws2 = autosar.workspace(ws.version_str)
         ws2.loadXML(os.path.join(os.path.dirname(__file__), expected_file))
@@ -731,6 +731,84 @@ class ARXML4DataTypeTest(ARXMLTestClass):
         dt2 = ws2.find(dt1.ref)
         self.assertEqual(dt1.name, dt2.name)
         self.assertIsNone(dt2.size)
+
+    def test_create_curve_application_data_type(self):
+        ws = autosar.workspace(version="4.2.2")
+        _create_packages(ws)
+        _create_base_types(ws)
+        package = ws['DataTypes/DataConstrs']
+        compuMethod = package.createCompuMethodIdentical('Identical', unit = 'NoUnit')
+        constraint = package.createPhysicalDataConstraint('ADT_Curve_DataConstr', -3, 3)
+        package = ws['DataTypes']
+
+        comAxis = package.createApplicationPrimitiveDataType('ADT_Com_axis', category = 'COM_AXIS')
+        self.assertIsInstance(comAxis, autosar.datatype.ApplicationPrimitiveDataType)
+        self.assertEqual('/DataTypes/ADT_Com_axis', comAxis.ref)
+
+        comAxisVariantProp = autosar.base.SwDataDefPropsConditional(
+            swCalibrationAccess = 'NOT-ACCESSIBLE',
+            )
+        comAxis.variantProps.append(comAxisVariantProp)
+        if not isinstance(comAxisVariantProp.calPrmAxisSet, list):
+            comAxisVariantProp.calPrmAxisSet = []
+
+        swCalprmAxis = autosar.base.SwCalprmAxis(swAxisIndex=1, parent=comAxisVariantProp)
+        comAxisVariantProp.calPrmAxisSet.append(swCalprmAxis)
+
+        swCalprmAxisIndividual = autosar.base.SwCalprmAxisIndividual(compuMethodRef=compuMethod.ref, unitRef=compuMethod.unitRef, swMinAxisPoints=50, swMaxAxisPoints=60, dataConstraintRef=constraint.ref)
+        swCalprmAxis.swAxisIndividual = swCalprmAxisIndividual
+
+        curve = package.createApplicationPrimitiveDataType('ADT_Curve', category = 'CURVE')
+        self.assertIsInstance(curve, autosar.datatype.ApplicationPrimitiveDataType)
+        self.assertEqual('/DataTypes/ADT_Curve', curve.ref)
+
+        curveVariantProp = autosar.base.SwDataDefPropsConditional(
+            swCalibrationAccess = 'READ-ONLY',
+            dataConstraintRef = constraint.ref,
+            compuMethodRef = compuMethod.ref
+            )
+        curve.variantProps.append(curveVariantProp)
+        if not isinstance(curveVariantProp.calPrmAxisSet, list):
+            curveVariantProp.calPrmAxisSet = []
+
+        swCalprmAxis = autosar.base.SwCalprmAxis(category='COM_AXIS', swAxisIndex=1, swAxisGroupedIndex=1, swAxisGroupedSharedAxisRef=comAxis.ref, parent=curveVariantProp)
+        curveVariantProp.calPrmAxisSet.append(swCalprmAxis)
+
+        file_name = 'ar4_adt_curve.arxml'
+        generated_file = os.path.join(self.output_dir, file_name)
+        expected_file = os.path.join( 'expected_gen', 'datatype', file_name)
+        self.save_and_check(ws, expected_file, generated_file, ['/DataTypes'])
+        ws2 = autosar.workspace(ws.version_str)
+        ws2.loadXML(os.path.join(os.path.dirname(__file__), expected_file))
+
+        dt2 = ws2.find('/DataTypes/ADT_Com_axis')
+        self.assertIsInstance(dt2, autosar.datatype.ApplicationPrimitiveDataType)
+        self.assertEqual(dt2.category, comAxis.category)
+        self.assertEqual(len(dt2.variantProps), 1)
+        self.assertIsInstance(dt2.variantProps[0], autosar.base.SwDataDefPropsConditional)
+        self.assertEqual(dt2.variantProps[0].swCalibrationAccess, comAxisVariantProp.swCalibrationAccess)
+        self.assertEqual(len(dt2.variantProps[0].calPrmAxisSet), 1)
+        self.assertIsInstance(dt2.variantProps[0].calPrmAxisSet[0], autosar.base.SwCalprmAxis)
+        self.assertIsInstance(dt2.variantProps[0].calPrmAxisSet[0].swAxisIndividual, autosar.base.SwCalprmAxisIndividual)
+        self.assertEqual(dt2.variantProps[0].calPrmAxisSet[0].swAxisIndividual.compuMethodRef, swCalprmAxisIndividual.compuMethodRef)
+        self.assertEqual(dt2.variantProps[0].calPrmAxisSet[0].swAxisIndividual.unitRef, swCalprmAxisIndividual.unitRef)
+        self.assertEqual(dt2.variantProps[0].calPrmAxisSet[0].swAxisIndividual.swMinAxisPoints, swCalprmAxisIndividual.swMinAxisPoints)
+        self.assertEqual(dt2.variantProps[0].calPrmAxisSet[0].swAxisIndividual.swMaxAxisPoints, swCalprmAxisIndividual.swMaxAxisPoints)
+        self.assertEqual(dt2.variantProps[0].calPrmAxisSet[0].swAxisIndividual.dataConstraintRef, swCalprmAxisIndividual.dataConstraintRef)
+
+        dt3 = ws2.find('/DataTypes/ADT_Curve')
+        self.assertIsInstance(dt3, autosar.datatype.ApplicationPrimitiveDataType)
+        self.assertEqual(dt3.category, curve.category)
+        self.assertEqual(len(dt3.variantProps), 1)
+        self.assertIsInstance(dt3.variantProps[0], autosar.base.SwDataDefPropsConditional)
+        self.assertEqual(dt2.variantProps[0].swCalibrationAccess, curveVariantProp.swCalibrationAccess)
+        self.assertEqual(len(dt3.variantProps[0].calPrmAxisSet), 1)
+        self.assertIsInstance(dt3.variantProps[0].calPrmAxisSet[0], autosar.base.SwCalprmAxis)
+        self.assertIsNone(dt3.variantProps[0].calPrmAxisSet[0].swAxisIndividual)
+        self.assertEqual(dt3.variantProps[0].calPrmAxisSet[0].category, swCalprmAxis.category)
+        self.assertEqual(dt3.variantProps[0].calPrmAxisSet[0].swAxisIndex, swCalprmAxis.swAxisIndex)
+        self.assertEqual(dt3.variantProps[0].calPrmAxisSet[0].swAxisGroupedIndex, swCalprmAxis.swAxisGroupedIndex)
+        self.assertEqual(dt3.variantProps[0].calPrmAxisSet[0].swAxisGroupedSharedAxisRef, swCalprmAxis.swAxisGroupedSharedAxisRef)
 
 if __name__ == '__main__':
     unittest.main()

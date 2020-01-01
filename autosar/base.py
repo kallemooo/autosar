@@ -248,7 +248,7 @@ class SwDataDefPropsConditional:
     def tag(self,version=None): return 'SW-DATA-DEF-PROPS-CONDITIONAL'
     def __init__(self, baseTypeRef = None, implementationTypeRef = None, swAddressMethodRef = None, swCalibrationAccess = None,
             swImplPolicy = None, swPointerTargetProps = None, compuMethodRef = None, dataConstraintRef = None,
-            unitRef = None, parent = None, swRecordLayoutRef = None, additionalNativeTypeQualifier = None, axisSet = None, invalidValue = None):
+            unitRef = None, parent = None, swRecordLayoutRef = None, additionalNativeTypeQualifier = None, calPrmAxisSet = None, invalidValue = None):
         self.baseTypeRef = baseTypeRef
         self.swCalibrationAccess = swCalibrationAccess
         self.swAddressMethodRef = swAddressMethodRef
@@ -258,7 +258,7 @@ class SwDataDefPropsConditional:
         self.swPointerTargetProps = swPointerTargetProps
         self.unitRef = unitRef
         self._swImplPolicy = swImplPolicy
-        self.axisSet = axisSet
+        self.calPrmAxisSet = calPrmAxisSet
         self.swRecordLayoutRef = swRecordLayoutRef
         self.additionalNativeTypeQualifier = additionalNativeTypeQualifier
         self.invalidValue = invalidValue
@@ -295,7 +295,7 @@ class SwDataDefPropsConditional:
                       'swPointerTargetProps',
                       'unitRef',
                       '_swImplPolicy',
-                      'axisSet',
+                      'calPrmAxisSet',
                       'swRecordLayoutRef',
                       'additionalNativeTypeQualifier',
                       'invalidValue'
@@ -340,7 +340,7 @@ class SwCalprmAxis:
     """
     def tag(self, version=None): return 'SW-CALPRM-AXIS'
 
-    def __init__(self, swAxisIndex = None, category = None, calibrationAccess = None, swAxisIndividual = None, swAxisGroupedSharedAxisRef = None, swAxisGroupedIndex = None, displayFormat = None, baseTypeRef = None):
+    def __init__(self, swAxisIndex = None, category = None, calibrationAccess = None, swAxisIndividual = None, swAxisGroupedSharedAxisRef = None, swAxisGroupedIndex = None, displayFormat = None, baseTypeRef = None, parent = None):
         self.swAxisIndex = swAxisIndex
         self.category = category
         self.calibrationAccess = calibrationAccess
@@ -349,6 +349,7 @@ class SwCalprmAxis:
         self.swAxisGroupedIndex = swAxisGroupedIndex
         self.displayFormat = displayFormat
         self.baseTypeRef = baseTypeRef
+        self.parent = parent
 
 class SwCalprmAxisIndividual:
     """
@@ -357,12 +358,13 @@ class SwCalprmAxisIndividual:
     """
     def tag(self, version=None): return 'SW-AXIS-INDIVIDUAL'
 
-    def __init__(self, compuMethodRef = None, unitRef = None, swMaxAxisPoints = None, swMixAxisPoints = None, dataConstraintRef = None):
+    def __init__(self, compuMethodRef = None, unitRef = None, swMaxAxisPoints = None, swMinAxisPoints = None, dataConstraintRef = None, parent=None):
         self.compuMethodRef = compuMethodRef
         self.unitRef = unitRef
         self.swMaxAxisPoints = swMaxAxisPoints
-        self.swMixAxisPoints = swMixAxisPoints
+        self.swMinAxisPoints = swMinAxisPoints
         self.dataConstraintRef = dataConstraintRef
+        self.parent = parent
 
 #Exceptions
 class InvalidUnitRef(ValueError):

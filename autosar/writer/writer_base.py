@@ -190,6 +190,8 @@ class BaseWriter:
             lines.append(self.indent('<SW-ADDR-METHOD-REF DEST="%s">%s</SW-ADDR-METHOD-REF>'%(swAddressMethod.tag(self.version), swAddressMethod.ref),1))
         if elem.swCalibrationAccess is not None:
             lines.append(self.indent('<SW-CALIBRATION-ACCESS>%s</SW-CALIBRATION-ACCESS>'%(elem.swCalibrationAccess),1))
+        if elem.calPrmAxisSet is not None:
+            lines.extend(self.indent(self.writeSwcalPrmAxisSet(ws, elem.calPrmAxisSet),1))
         if elem.compuMethodRef is not None:
             lines.append(self.indent('<COMPU-METHOD-REF DEST="COMPU-METHOD">%s</COMPU-METHOD-REF>'%(elem.compuMethodRef),1))
         if elem.dataConstraintRef is not None:
@@ -425,6 +427,63 @@ class BaseWriter:
             lines.extend(self.indent(self.writeSwDataDefPropsVariantsXML(ws, elem.variants),2))
         lines.append(self.indent("</SW-DATA-DEF-PROPS>", 1))
         lines.append("</%s>"%elem.tag(self.version))
+        return lines
+
+    def writeSwcalPrmAxisSet(self, ws, axisSet):
+        assert(isinstance(axisSet, list))
+        lines = []
+        lines.append("<SW-CALPRM-AXIS-SET>")
+        for axis in axisSet:
+            assert(isinstance(axis, autosar.base.SwCalprmAxis))
+            lines.append(self.indent("<SW-CALPRM-AXIS>",1))
+            if axis.swAxisIndex is not None:
+                lines.append(self.indent('<SW-AXIS-INDEX>%s</SW-AXIS-INDEX>'%(str(axis.swAxisIndex)),2))
+            if axis.category is not None:
+                lines.append(self.indent('<CATEGORY>%s</CATEGORY>'%(axis.category),2))
+            if axis.swAxisGroupedSharedAxisRef is not None:
+                lines.append(self.indent('<SW-AXIS-GROUPED>',2))
+                sharedAxis = ws.find(axis.swAxisGroupedSharedAxisRef, role="DataType")
+                if (sharedAxis is None):
+                    raise ValueError("invalid type reference: '%s'"%axis.swAxisGroupedSharedAxisRef)
+                else:
+                    lines.append(self.indent('<SHARED-AXIS-TYPE-REF DEST="%s">%s</SHARED-AXIS-TYPE-REF>'%(sharedAxis.tag(self.version),sharedAxis.ref),3))
+                if axis.swAxisGroupedIndex is not None:
+                    lines.append(self.indent('<SW-AXIS-INDEX>%s</SW-AXIS-INDEX>'%(str(axis.swAxisGroupedIndex)),3))
+                lines.append(self.indent('</SW-AXIS-GROUPED>',2))
+            if axis.swAxisIndividual is not None:
+                assert(isinstance(axis.swAxisIndividual, autosar.base.SwCalprmAxisIndividual))
+                lines.append(self.indent('<SW-AXIS-INDIVIDUAL>',2))
+
+                if axis.swAxisIndividual.compuMethodRef is not None:
+                    compuMethod = ws.find(axis.swAxisIndividual.compuMethodRef, role="DataType")
+                    if (compuMethod is None):
+                        raise ValueError("invalid compu method reference: '%s'"%axis.swAxisIndividual.compuMethodRef)
+                    else:
+                        lines.append(self.indent('<COMPU-METHOD-REF DEST="%s">%s</COMPU-METHOD-REF>'%(compuMethod.tag(self.version),compuMethod.ref),3))
+
+                if axis.swAxisIndividual.unitRef is not None:
+                    unit = ws.find(axis.swAxisIndividual.unitRef, role="DataType")
+                    if (unit is None):
+                        raise ValueError("invalid unit type reference: '%s'"%axis.swAxisIndividual.unitRef)
+                    else:
+                        lines.append(self.indent('<UNIT-REF DEST="%s">%s</UNIT-REF>'%(unit.tag(self.version),unit.ref),3))
+
+                if axis.swAxisIndividual.swMaxAxisPoints is not None:
+                    lines.append(self.indent('<SW-MAX-AXIS-POINTS>%s</SW-MAX-AXIS-POINTS>'%(str(axis.swAxisIndividual.swMaxAxisPoints)),3))
+
+                if axis.swAxisIndividual.swMinAxisPoints is not None:
+                    lines.append(self.indent('<SW-MIN-AXIS-POINTS>%s</SW-MIN-AXIS-POINTS>'%(str(axis.swAxisIndividual.swMinAxisPoints)),3))
+
+                if axis.swAxisIndividual.dataConstraintRef is not None:
+                    dataConstraint = ws.find(axis.swAxisIndividual.dataConstraintRef, role="DataType")
+                    if (dataConstraint is None):
+                        raise ValueError("invalid data constraint reference: '%s'"%axis.swAxisIndividual.dataConstraintRef)
+                    else:
+                        lines.append(self.indent('<DATA-CONSTR-REF DEST="%s">%s</DATA-CONSTR-REF>'%(dataConstraint.tag(self.version),dataConstraint.ref),3))
+
+                lines.append(self.indent('</SW-AXIS-INDIVIDUAL>',2))
+            lines.append(self.indent("</SW-CALPRM-AXIS>",1))
+        lines.append("</SW-CALPRM-AXIS-SET>")
         return lines
 
 
