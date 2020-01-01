@@ -500,6 +500,32 @@ class DataTypeUnitsParser(ElementParser):
         if self.version>=4.0:
             factor = self.parseTextNode(xmlRoot.find("./FACTOR-SI-TO-UNIT"))
             offset = self.parseTextNode(xmlRoot.find("./OFFSET-SI-TO-UNIT"))
+            physicalDimensionRef = self.parseTextNode(xmlRoot.find("./PHYSICAL-DIMENSION-REF"))
         else:
-            (factor,offset) = (None, None)
-        return autosar.datatype.Unit(name, displayName, factor, offset, parent)
+            (factor,offset, physicalDimensionRef) = (None, None, None)
+        return autosar.datatype.Unit(name, displayName, factor, offset, parent, physicalDimensionRef)
+
+class DataTypePhysicalDimensionParser(ElementParser):
+    def __init__(self,version=4.0):
+        super().__init__(version)
+
+    def getSupportedTags(self):
+        return ['PHYSICAL-DIMENSION']
+
+    def parseElement(self, xmlElement, parent = None):
+        if xmlElement.tag == 'PHYSICAL-DIMENSION':
+            return self._parsePhysicalDimension(xmlElement, parent)
+        else:
+            return None
+
+    def _parsePhysicalDimension(self, xmlRoot, parent=None):
+        assert (xmlRoot.tag == 'PHYSICAL-DIMENSION')
+        name = self.parseTextNode(xmlRoot.find("./SHORT-NAME"))
+        lengthExp = self.parseNumberNode(xmlRoot.find("./LENGTH-EXP"))
+        massExp = self.parseNumberNode(xmlRoot.find("./MASS-EXP"))
+        timeExp = self.parseNumberNode(xmlRoot.find("./TIME-EXP"))
+        currentExp = self.parseNumberNode(xmlRoot.find("./CURRENT-EXP"))
+        temperatureExp = self.parseNumberNode(xmlRoot.find("./TEMPERATURE-EXP"))
+        molarAmountExp = self.parseNumberNode(xmlRoot.find("./MOLAR-AMOUNT-EXP"))
+        luminousIntensityExp = self.parseNumberNode(xmlRoot.find("./LUMINOUS-INTENSITY-EXP"))
+        return autosar.datatype.PhysicalDimension(name, lengthExp=lengthExp, massExp=massExp, timeExp=timeExp, currentExp=currentExp, temperatureExp=temperatureExp, molarAmountExp=molarAmountExp, luminousIntensityExp=luminousIntensityExp, parent=parent)

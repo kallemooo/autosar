@@ -8,7 +8,7 @@ import ntpath
 import collections
 import re
 #default parsers
-from autosar.parser.datatype_parser import (DataTypeParser, DataTypeSemanticsParser, DataTypeUnitsParser)
+from autosar.parser.datatype_parser import (DataTypeParser, DataTypeSemanticsParser, DataTypeUnitsParser, DataTypePhysicalDimensionParser)
 from autosar.parser.portinterface_parser import (PortInterfacePackageParser,SoftwareAddressMethodParser)
 from autosar.parser.constant_parser import ConstantParser
 from autosar.parser.behavior_parser import BehaviorParser
@@ -464,6 +464,7 @@ class Workspace:
         parser.registerElementParser(BehaviorParser(self.version))
         parser.registerElementParser(SystemParser(self.version))
         parser.registerElementParser(SignalParser(self.version))
+        parser.registerElementParser(DataTypePhysicalDimensionParser(self.version))
 
     def _registerDefaultElementWriters(self, writer):
         writer.registerElementWriter(XMLDataTypeWriter(self.version, self.patch))

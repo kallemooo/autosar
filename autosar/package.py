@@ -1122,6 +1122,25 @@ class Package(object):
         self.append(dataType)
         return dataType
 
+    def createPhysicalDimension(self, name, lengthExp=None, massExp=None, timeExp=None, currentExp=None, temperatureExp=None, molarAmountExp=None, luminousIntensityExp=None):
+        """
+        (AUTOSAR4)
+        Creates a new PhysicalDimension
+        """
+        ws=self.rootWS()
+        assert(ws is not None)
+        assert(ws is not None)
+        if ws.roles['Unit'] is None:
+            unitPackage = self
+        else:
+            unitPackage = ws.find(ws.roles['Unit'])
+        physicalDimension = unitPackage.find(name)
+        if physicalDimension is None:
+            physicalDimension = autosar.datatype.PhysicalDimension(name=name, lengthExp=lengthExp, massExp=massExp, timeExp=timeExp,
+                                    currentExp=currentExp, temperatureExp=temperatureExp, molarAmountExp=molarAmountExp,
+                                    luminousIntensityExp=luminousIntensityExp, parent=physicalDimension)
+            unitPackage.append(physicalDimension)
+        return physicalDimension
 
     def createUnit(self, shortName, displayName = None, factor = None, offset = None):
         ws = self.rootWS()

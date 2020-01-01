@@ -54,16 +54,45 @@ class Unit(Element):
 
     def tag(self, version=None): return 'UNIT'
 
-    def __init__(self, name, displayName, factor=None, offset=None, parent=None):
+    def __init__(self, name, displayName, factor=None, offset=None, parent=None, physicalDimensionRef=None):
         super().__init__(name, parent)
         self.displayName=displayName
         self.factor = factor       #only supported in AUTOSAR 4 and above
         self.offset = offset       #only supported in AUTOSAR 4 and above
+        self.physicalDimensionRef = physicalDimensionRef       #only supported in AUTOSAR 4 and above
     def __eq__(self,other):
         if self is other: return True
         if type(self) is type(other):
             if (self.name==other.name) and (self.displayName == other.displayName) and (
-               self.factor == other.factor) and (self.offset == other.offset):
+               self.factor == other.factor) and (self.offset == other.offset) and (
+               self.physicalDimensionRef == other.physicalDimensionRef):
+                return True
+        return False
+
+class PhysicalDimension(Element):
+    """
+    Implementation of <"PHYSICAL-DIMENSION">
+    """
+
+    def tag(self, version=None): return 'PHYSICAL-DIMENSION'
+
+    def __init__(self, name, lengthExp=None, massExp=None, timeExp=None, currentExp=None, temperatureExp=None, molarAmountExp=None, luminousIntensityExp=None, parent=None):
+        super().__init__(name, parent)
+        self.lengthExp = lengthExp
+        self.massExp = massExp
+        self.timeExp = timeExp
+        self.currentExp = currentExp
+        self.temperatureExp = temperatureExp
+        self.molarAmountExp = molarAmountExp
+        self.luminousIntensityExp = luminousIntensityExp
+
+    def __eq__(self,other):
+        if self is other: return True
+        if type(self) is type(other):
+            if (self.name==other.name) and (self.lengthExp == other.lengthExp) and (
+               self.massExp == other.massExp) and (self.timeExp == other.timeExp) and (
+               self.currentExp == other.currentExp) and (self.temperatureExp == other.temperatureExp) and (
+               self.molarAmountExp == other.molarAmountExp) and (self.luminousIntensityExp == other.luminousIntensityExp):
                 return True
         return False
 

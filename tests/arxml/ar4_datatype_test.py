@@ -801,7 +801,7 @@ class ARXML4DataTypeTest(ARXMLTestClass):
         self.assertEqual(dt3.category, curve.category)
         self.assertEqual(len(dt3.variantProps), 1)
         self.assertIsInstance(dt3.variantProps[0], autosar.base.SwDataDefPropsConditional)
-        self.assertEqual(dt2.variantProps[0].swCalibrationAccess, curveVariantProp.swCalibrationAccess)
+        self.assertEqual(dt3.variantProps[0].swCalibrationAccess, curveVariantProp.swCalibrationAccess)
         self.assertEqual(len(dt3.variantProps[0].calPrmAxisSet), 1)
         self.assertIsInstance(dt3.variantProps[0].calPrmAxisSet[0], autosar.base.SwCalprmAxis)
         self.assertIsNone(dt3.variantProps[0].calPrmAxisSet[0].swAxisIndividual)
@@ -809,6 +809,37 @@ class ARXML4DataTypeTest(ARXMLTestClass):
         self.assertEqual(dt3.variantProps[0].calPrmAxisSet[0].swAxisIndex, swCalprmAxis.swAxisIndex)
         self.assertEqual(dt3.variantProps[0].calPrmAxisSet[0].swAxisGroupedIndex, swCalprmAxis.swAxisGroupedIndex)
         self.assertEqual(dt3.variantProps[0].calPrmAxisSet[0].swAxisGroupedSharedAxisRef, swCalprmAxis.swAxisGroupedSharedAxisRef)
+
+    def test_auto_create_unit_and_physical_dimension(self):
+        ws = autosar.workspace(version="4.2.2")
+        _create_packages(ws)
+        _create_base_types(ws)
+
+        datatypes = ws['DataTypes']
+        dt1 = datatypes.createImplementationDataTypeRef('TestType_T',
+                                                    implementationTypeRef = '/DataTypes/uint16',
+                                                    lowerLimit = 0,
+                                                    upperLimit = 65535,
+                                                    offset = 0,
+                                                    scaling = 1/64,
+                                                    unit = 'TestUnit')
+
+        physicalDim = datatypes.createPhysicalDimension(name='TestDim', lengthExp=10, massExp=11, timeExp=float('NaN'),
+                                    currentExp=float('-INF'), temperatureExp=float('INF'), molarAmountExp=-293.112,
+                                    luminousIntensityExp=341.333)
+
+        unit = datatypes.find(dt1.variantProps[0].unitRef)
+        unit.physicalDimensionRef = physicalDim.ref
+
+        file_name = 'ar4_auto_create_unit_and_physical_dimension.arxml'
+        generated_file = os.path.join(self.output_dir, file_name)
+        expected_file = os.path.join( 'expected_gen', 'datatype', file_name)
+        self.save_and_check(ws, expected_file, generated_file, ['/DataTypes'])
+
+        ws2 = autosar.workspace(ws.version_str)
+        ws2.loadXML(os.path.join(os.path.dirname(__file__), expected_file))
+        dt2 = ws2.find(dt1.ref)
+        self.assertEqual(dt1.name, dt2.name)
 
 if __name__ == '__main__':
     unittest.main()

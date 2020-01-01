@@ -28,7 +28,8 @@ class XMLDataTypeWriter(ElementWriter):
                               'DataTypeMappingSet': self.writeDataTypeMappingSetXML,
                               'ApplicationPrimitiveDataType': self.writeApplicationPrimitiveDataTypeXML,
                               'ApplicationArrayDataType': self.writeApplicationArrayDataTypeXML,
-                              'ApplicationRecordDataType': self.writeApplicationRecordDataTypeXML
+                              'ApplicationRecordDataType': self.writeApplicationRecordDataTypeXML,
+                              'PhysicalDimension': self.writePhysicalDimensionXML
             }
         else:
             switch.keys = {}
@@ -185,6 +186,35 @@ class XMLDataTypeWriter(ElementWriter):
                 lines.append(self.indent('<FACTOR-SI-TO-UNIT>%s</FACTOR-SI-TO-UNIT>'%elem.factor,1))
             if elem.offset is not None:
                 lines.append(self.indent('<OFFSET-SI-TO-UNIT>%s</OFFSET-SI-TO-UNIT>'%elem.offset,1))
+            if elem.physicalDimensionRef is not None:
+                ws = elem.rootWS()
+                phyDim = ws.find(elem.physicalDimensionRef, role='Unit')
+                if phyDim is None:
+                    raise ValueError('invalid reference: '+elem.physicalDimensionRef)
+                lines.append(self.indent('<PHYSICAL-DIMENSION-REF DEST="%s">%s</PHYSICAL-DIMENSION-REF>'%(phyDim.tag(self.version), phyDim.ref), 1))
+        lines.append('</{}>'.format(elem.tag(self.version)))
+        return lines
+
+    def writePhysicalDimensionXML(self, elem):
+        lines=[]
+        lines.append('<{}>'.format(elem.tag(self.version)))
+        lines.append(self.indent('<SHORT-NAME>%s</SHORT-NAME>'%elem.name,1))
+
+        if elem.lengthExp is not None:
+            lines.append(self.indent('<LENGTH-EXP>%s</LENGTH-EXP>'%self._numberToString(elem.lengthExp),1))
+        if elem.massExp is not None:
+            lines.append(self.indent('<MASS-EXP>%s</MASS-EXP>'%self._numberToString(elem.massExp),1))
+        if elem.timeExp is not None:
+            lines.append(self.indent('<TIME-EXP>%s</TIME-EXP>'%self._numberToString(elem.timeExp),1))
+        if elem.currentExp is not None:
+            lines.append(self.indent('<CURRENT-EXP>%s</CURRENT-EXP>'%self._numberToString(elem.currentExp),1))
+        if elem.temperatureExp is not None:
+            lines.append(self.indent('<TEMPERATURE-EXP>%s</TEMPERATURE-EXP>'%self._numberToString(elem.temperatureExp),1))
+        if elem.molarAmountExp is not None:
+            lines.append(self.indent('<MOLAR-AMOUNT-EXP>%s</MOLAR-AMOUNT-EXP>'%self._numberToString(elem.molarAmountExp),1))
+        if elem.luminousIntensityExp is not None:
+            lines.append(self.indent('<LUMINOUS-INTENSITY-EXP>%s</LUMINOUS-INTENSITY-EXP>'%self._numberToString(elem.luminousIntensityExp),1))
+
         lines.append('</{}>'.format(elem.tag(self.version)))
         return lines
 

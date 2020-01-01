@@ -144,13 +144,14 @@ class BaseParser:
     def parseNumberNode(self, xmlElem):
         textValue = self.parseTextNode(xmlElem)
         retval = None
-        try:
-            retval = int(textValue)
-        except ValueError:
+        if textValue is not None:
             try:
-                retval = float(textValue)
+                retval = int(textValue)
             except ValueError:
-                retval = textValue
+                try:
+                    retval = float(textValue)
+                except ValueError:
+                    retval = textValue
         return retval
 
     def hasAdminData(self, xmlRoot):
